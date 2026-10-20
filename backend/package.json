@@ -1,0 +1,17 @@
+{
+  "name": "formacion-indra-backend",
+  "version": "1.0.0",
+  "description": "Backend Node.js de la plataforma Formación Indra (API REST + base de datos relacional)",
+  "type": "module",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

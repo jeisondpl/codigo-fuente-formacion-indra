@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Variables de entorno (claves Supabase, VITE_API_URL, SECRETO_TOKEN)
+.env
+.env.*
+!.env.example
+
+# Backend: datos de ejecución (SQLite + secreto de sesiones) y archivos subidos
+backend/datos/
+backend/archivos/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
