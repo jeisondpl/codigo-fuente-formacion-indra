@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Entorno y secretos
+.env
+.env.*
+backend/datos/
+backend/archivos/
+
+# Herramientas locales de Verdent
+.verdent/
