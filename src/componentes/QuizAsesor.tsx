@@ -318,11 +318,13 @@ export default function QuizAsesor({
 
   const duracion = DURACION_QUIZ[tipoPrograma];
   const claveTiempo = `quiz-inicio-${preturnoId}-${usuarioId}`;
+  const claveIniciado = `quiz-activo-${preturnoId}-${usuarioId}`;
   // El quiz solo arranca cuando el asesor presiona «Empezar quiz».
-  // Si ya había un intento en curso (p. ej. recarga de página), se retoma directamente.
+  // La marca de «iniciado» se escribe solo con el botón; la marca de tiempo
+  // (claveTiempo) sirve únicamente para retomar el cronómetro si recarga la página.
   const [iniciado, setIniciado] = useState(() => {
     try {
-      return Number(sessionStorage.getItem(claveTiempo)) > 0;
+      return sessionStorage.getItem(claveIniciado) === '1';
     } catch {
       return false;
     }
@@ -373,6 +375,7 @@ export default function QuizAsesor({
     enviadoRef.current = true;
     try {
       sessionStorage.removeItem(claveTiempo);
+      sessionStorage.removeItem(claveIniciado);
     } catch {
       // sin almacenamiento de sesión: el timer simplemente reinicia
     }
@@ -548,7 +551,14 @@ export default function QuizAsesor({
         </p>
         <button
           type="button"
-          onClick={() => setIniciado(true)}
+          onClick={() => {
+            try {
+              sessionStorage.setItem(claveIniciado, '1');
+            } catch {
+              // sin almacenamiento: el quiz inicia sin protección de recarga
+            }
+            setIniciado(true);
+          }}
           className="mt-1 inline-flex items-center gap-2 rounded-lg bg-indra-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indra-700"
         >
           <PlayCircle className="h-5 w-5" /> Empezar quiz
