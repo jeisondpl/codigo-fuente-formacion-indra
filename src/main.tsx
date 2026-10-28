@@ -319,6 +319,49 @@ function Aplicacion() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [campana, setCampana] = useState<Campana>('criticos');
 
+  // --- Botón «atrás» del navegador ---
+  // La app no usa URLs, así que el botón atrás del navegador sacaba al usuario
+  // de la aplicación. Se sincroniza la vista con el historial: cada navegación
+  // interna crea una entrada y una entrada «guardia» absorbe los atrás extra,
+  // de modo que el navegador nunca salga de la app.
+  const CLAVE_APP = 'formacion-indra';
+
+  /** Navega a una vista y registra la entrada en el historial del navegador. */
+  const navegar = (nueva: Vista) => {
+    setVista(nueva);
+    try {
+      history.pushState({ app: CLAVE_APP, vista: nueva }, '');
+    } catch {
+      // historial no disponible: la navegación interna sigue funcionando
+    }
+  };
+
+  useEffect(() => {
+    try {
+      // La entrada actual se convierte en la base y se añade una guardia extra.
+      history.replaceState({ app: CLAVE_APP, vista: { tipo: 'inicio' }, base: true }, '');
+      history.pushState({ app: CLAVE_APP, vista: { tipo: 'inicio' }, guardia: true }, '');
+    } catch {
+      return; // sin historial no hay nada que manejar
+    }
+    const alPop = (e: PopStateEvent) => {
+      const s = e.state as { app?: string; vista?: Vista; base?: boolean } | null;
+      const destino: Vista = s?.app === CLAVE_APP && s.vista ? s.vista : { tipo: 'inicio' };
+      setVista(destino);
+      // Si se llegó a la entrada base, se repone la guardia para no salir de la app.
+      if (s?.base) {
+        try {
+          history.pushState({ app: CLAVE_APP, vista: destino, guardia: true }, '');
+        } catch {
+          // ignorar
+        }
+      }
+    };
+    window.addEventListener('popstate', alPop);
+    return () => window.removeEventListener('popstate', alPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const alIngresar = (u: Usuario) => {
     setUsuario(u);
     setVista({ tipo: 'inicio' });
@@ -421,7 +464,7 @@ function Aplicacion() {
                 value={campana}
                 onChange={(e) => {
                   setCampana(e.target.value as Campana);
-                  setVista({ tipo: 'inicio' });
+                  navegar({ tipo: 'inicio' });
                 }}
                 className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-bold text-white focus:border-indra-500 focus:outline-none [&>option]:text-slate-900"
               >
@@ -448,7 +491,7 @@ function Aplicacion() {
                 key={id}
                 type="button"
                 onClick={() => {
-                  setVista({ tipo: id });
+                  navegar({ tipo: id });
                   setMenuAbierto(false);
                 }}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
@@ -506,7 +549,7 @@ function Aplicacion() {
             </button>
             <button
               type="button"
-              onClick={() => setVista({ tipo: 'perfil' })}
+              onClick={() => navegar({ tipo: 'perfil' })}
               className="transition-opacity hover:opacity-85"
               title="Ver mi perfil"
             >
@@ -533,7 +576,7 @@ function Aplicacion() {
               esFormador={esFormador}
               usuarioId={usuario.id}
               campana={campana}
-              onAbrirPreturno={(id) => setVista({ tipo: 'preturno', id })}
+              onAbrirPreturno={(id) => navegar({ tipo: 'preturno', id })}
             />
           )}
           {vista.tipo === 'perfil' && <MiPerfil usuario={usuario} />}
@@ -550,7 +593,7 @@ function Aplicacion() {
               usuarioId={usuario.id}
               usuarioNombre={usuario.nombre}
               esFormador={esFormador}
-              onVolver={() => setVista({ tipo: 'inicio' })}
+              onVolver={() => navegar({ tipo: 'inicio' })}
             />
           )}
         </main>

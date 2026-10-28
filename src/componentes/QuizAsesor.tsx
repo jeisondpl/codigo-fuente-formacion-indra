@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Intento, Pregunta, TipoPrograma } from '../tipos';
 import { esRespuestaCorrecta, generarId, palabrasSopa } from '../datos';
-import { Award, ChevronLeft, ChevronRight, RotateCcw, Timer, X } from 'lucide-react';
+import { Award, ChevronLeft, ChevronRight, ClipboardCheck, PlayCircle, RotateCcw, Timer, X } from 'lucide-react';
 
 interface Props {
   preguntas: Pregunta[];
@@ -318,6 +318,15 @@ export default function QuizAsesor({
 
   const duracion = DURACION_QUIZ[tipoPrograma];
   const claveTiempo = `quiz-inicio-${preturnoId}-${usuarioId}`;
+  // El quiz solo arranca cuando el asesor presiona «Empezar quiz».
+  // Si ya había un intento en curso (p. ej. recarga de página), se retoma directamente.
+  const [iniciado, setIniciado] = useState(() => {
+    try {
+      return Number(sessionStorage.getItem(claveTiempo)) > 0;
+    } catch {
+      return false;
+    }
+  });
   const [restante, setRestante] = useState(duracion);
   const enviadoRef = useRef(false);
 
@@ -381,9 +390,9 @@ export default function QuizAsesor({
     });
   };
 
-  // Cronómetro: arranca al abrir el quiz y sobrevive recargas de página.
+  // Cronómetro: arranca al presionar «Empezar quiz» y sobrevive recargas de página.
   useEffect(() => {
-    if (terminado || bloqueado) return;
+    if (!iniciado || terminado || bloqueado) return;
     let inicio = Date.now();
     try {
       const guardado = Number(sessionStorage.getItem(claveTiempo));
@@ -400,7 +409,7 @@ export default function QuizAsesor({
     actualizar();
     const tictac = window.setInterval(actualizar, 1000);
     return () => window.clearInterval(tictac);
-  }, [terminado, bloqueado, claveTiempo, duracion]);
+  }, [iniciado, terminado, bloqueado, claveTiempo, duracion]);
 
   // Al llegar a cero se envía automáticamente lo respondido (lo no respondido queda sin respuesta).
   useEffect(() => {
@@ -515,6 +524,34 @@ export default function QuizAsesor({
           className="mt-2 inline-flex items-center gap-2 rounded-lg border border-indra-600 px-4 py-2 text-sm font-semibold text-indra-600 transition-colors hover:bg-indra-100"
         >
           <RotateCcw className="h-4 w-4" /> Intentar de nuevo
+        </button>
+      </div>
+    );
+  }
+
+  // Pantalla previa: el asesor decide cuándo comenzar (el tiempo empieza al pulsar el botón).
+  if (!iniciado) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 text-center shadow-sm">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indra-100 text-indra-600">
+          <ClipboardCheck className="h-8 w-8" />
+        </div>
+        <h3 className="text-lg font-bold text-marina-950 dark:text-slate-100">
+          Evaluación de {total} pregunta{total !== 1 ? 's' : ''}
+        </h3>
+        <p className="max-w-72 text-sm font-semibold text-slate-600 dark:text-slate-300">
+          Antes de comenzar, revisa el material de la sesión con calma.
+        </p>
+        <p className="max-w-72 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+          Duración: {duracion / 60} minutos. Al pulsar el botón el cronómetro comienza y no se
+          puede pausar; al agotarse, la evaluación se envía automáticamente.
+        </p>
+        <button
+          type="button"
+          onClick={() => setIniciado(true)}
+          className="mt-1 inline-flex items-center gap-2 rounded-lg bg-indra-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indra-700"
+        >
+          <PlayCircle className="h-5 w-5" /> Empezar quiz
         </button>
       </div>
     );
