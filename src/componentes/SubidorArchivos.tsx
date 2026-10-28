@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Material, TipoMaterial } from '../tipos';
 import { generarId } from '../datos';
-import { leerArchivo, guardarArchivo, LIMITE_ARCHIVO } from '../almacenArchivos';
-import { Download } from 'lucide-react';
+import { leerArchivo, guardarArchivo, LIMITE_ARCHIVO, esEnlaceExterno } from '../almacenArchivos';
+import { Download, Link2 } from 'lucide-react';
 
 const MB = 1024 * 1024;
 
@@ -27,6 +27,8 @@ export default function SubidorArchivos({ materiales, onAgregar, onQuitar }: Pro
   const [arrastrando, setArrastrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [descargandoId, setDescargandoId] = useState<string | null>(null);
+  const [enlace, setEnlace] = useState('');
+  const [tipoEnlace, setTipoEnlace] = useState<TipoMaterial>('video');
   const entradaRef = useRef<HTMLInputElement>(null);
   const profundidadRef = useRef(0);
 
@@ -40,8 +42,8 @@ export default function SubidorArchivos({ materiales, onAgregar, onQuitar }: Pro
       }
       if (archivo.size > LIMITE_ARCHIVO) {
         setError(
-          `"${archivo.name}" pesa ${textoTamano(archivo.size)} y supera el límite de 20 MB. ` +
-            'Comprime el video o usa un archivo más ligero.',
+          `"${archivo.name}" pesa ${textoTamano(archivo.size)} y supera el límite de 45 MB. ` +
+            'Comprime el video, súbelo a Drive/SharePoint y agrégalo con «Agregar por enlace», o usa un archivo más ligero.',
         );
         return;
       }
@@ -63,6 +65,11 @@ export default function SubidorArchivos({ materiales, onAgregar, onQuitar }: Pro
 
   const descargarMaterial = async (material: Material) => {
     setError(null);
+    // Los enlaces externos (Drive, SharePoint, etc.) simplemente se abren.
+    if (esEnlaceExterno(material.url)) {
+      window.open(material.url, '_blank', 'noopener');
+      return;
+    }
     setDescargandoId(material.id);
     try {
       let href = material.url;
@@ -143,7 +150,7 @@ export default function SubidorArchivos({ materiales, onAgregar, onQuitar }: Pro
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Arrastra archivos aquí o haz clic para seleccionarlos
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Videos, PDF o imágenes · máx. 20 MB por archivo</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Videos, PDF o imágenes · máx. 45 MB por archivo</p>
         <input
           ref={entradaRef}
           type="file"
@@ -158,6 +165,52 @@ export default function SubidorArchivos({ materiales, onAgregar, onQuitar }: Pro
       </div>
 
       {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
+
+      <div className="mt-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <Link2 className="h-3.5 w-3.5" /> Agregar por enlace (videos grandes de Drive o SharePoint)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="url"
+            value={enlace}
+            onChange={(e) => setEnlace(e.target.value)}
+            placeholder="https://drive.google.com/… o enlace compartido de la empresa"
+            className="min-w-48 flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indra-600 focus:outline-none"
+          />
+          <select
+            value={tipoEnlace}
+            onChange={(e) => setTipoEnlace(e.target.value as TipoMaterial)}
+            className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:border-indra-600 focus:outline-none"
+          >
+            <option value="video">Video</option>
+            <option value="pdf">PDF</option>
+            <option value="imagen">Imagen</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              const limpio = enlace.trim();
+              if (!/^https?:\/\//.test(limpio)) {
+                setError('El enlace debe comenzar con http:// o https://');
+                return;
+              }
+              setError(null);
+              onAgregar({
+                id: generarId(),
+                nombre: limpio.length > 60 ? `${limpio.slice(0, 57)}…` : limpio,
+                tipo: tipoEnlace,
+                url: limpio,
+                persistente: true,
+              });
+              setEnlace('');
+            }}
+            className="rounded-lg bg-marina-950 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indra-600"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
 
       {materiales.length > 0 && (
         <ul className="mt-3 space-y-2">

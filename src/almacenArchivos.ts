@@ -3,9 +3,10 @@ import { URL_API, modoBackendActivo } from './configBackend';
 
 /**
  * Límite por archivo al guardar (Supabase Storage o backend propio).
- * El máximo confiable del canal de subida actual es ~22 MB; se deja margen.
+ * El máximo del canal de subida directo a Supabase es 50 MB; se deja margen.
+ * Para archivos más pesados (videos largos) usar «Agregar por enlace».
  */
-export const LIMITE_ARCHIVO = 20 * 1024 * 1024;
+export const LIMITE_ARCHIVO = 45 * 1024 * 1024;
 
 const BUCKET = 'materiales';
 const PREFIJO_SBS = 'sbs:';
@@ -30,6 +31,11 @@ export function esTokenApi(url?: string): boolean {
 /** ¿La URL es cualquier token de archivo guardado (Storage, backend o IndexedDB)? */
 export function esTokenArchivo(url?: string): boolean {
   return esTokenStorage(url) || esTokenIdb(url) || esTokenApi(url);
+}
+
+/** ¿La URL es un enlace externo (Drive, SharePoint, intranet, etc.) y no un archivo guardado? */
+export function esEnlaceExterno(url?: string): boolean {
+  return typeof url === 'string' && url.startsWith('http');
 }
 
 /** URL pública para mostrar un archivo subido (Supabase Storage o backend propio). */
